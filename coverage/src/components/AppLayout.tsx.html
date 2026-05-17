@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/components/CardList.tsx</title>
+    <title>Code coverage report for src/components/AppLayout.tsx</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,20 +19,20 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/components</a> CardList.tsx</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/components</a> AppLayout.tsx</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/3</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>5/5</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
@@ -94,7 +94,31 @@
 <a name='L29'></a><a href='#L29'>29</a>
 <a name='L30'></a><a href='#L30'>30</a>
 <a name='L31'></a><a href='#L31'>31</a>
-<a name='L32'></a><a href='#L32'>32</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">180x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">29x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -103,19 +127,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">165x</span>
-<span class="cline-any cline-yes">31x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">134x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">269x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -125,37 +136,53 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { Product } from '../types';
-import { Card } from './Card';
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { NavLink, Outlet } from 'react-router-dom';
+import { Header } from './Header';
 &nbsp;
-type CardListProps = {
-  items: Product[];
-  selectedId?: number | null;
-  onSelectItem?: (id: number) =&gt; void;
+type AppLayoutProps = {
+  onTriggerError: () =&gt; void;
 };
 &nbsp;
-export const CardList = ({ items, selectedId = null, onSelectItem }: CardListProps) =&gt; {
-  if (!items.length) {
-    return (
-      &lt;p className="m-0 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"&gt;
-        No items found for this query.
-      &lt;/p&gt;
-    );
-  }
+const navLinkClass = ({ isActive }: { isActive: boolean }) =&gt;
+  `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+    isActive
+      ? 'bg-blue-600 text-white dark:bg-blue-500'
+      : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
+  }`;
 &nbsp;
-  return (
-    &lt;div className="grid gap-3"&gt;
-      {items.map((item) =&gt; (
-        &lt;Card
-          key={item.id}
-          item={item}
-          isSelected={selectedId === item.id}
-          onSelect={onSelectItem}
-        /&gt;
-      ))}
-    &lt;/div&gt;
-  );
-};
+export const AppLayout = ({ onTriggerError }: AppLayoutProps) =&gt; (
+  &lt;div className="mx-auto min-h-screen w-full max-w-6xl p-4 sm:p-6"&gt;
+    &lt;Header title="Product Search" /&gt;
+    &lt;nav
+      className="mb-5 flex justify-center gap-2 rounded-xl border border-slate-300 bg-white p-2 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      aria-label="Main navigation"
+    &gt;
+      &lt;NavLink to="/" className={navLinkClass}&gt;
+        Home
+      &lt;/NavLink&gt;
+      &lt;NavLink to="/about" className={navLinkClass}&gt;
+        About
+      &lt;/NavLink&gt;
+    &lt;/nav&gt;
+    &lt;Outlet /&gt;
+    &lt;footer className="mt-3 flex justify-end"&gt;
+      &lt;button
+        className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-base font-medium text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-400 dark:focus-visible:ring-blue-500/50"
+        type="button"
+        onClick={onTriggerError}
+      &gt;
+        Trigger Error
+      &lt;/button&gt;
+    &lt;/footer&gt;
+  &lt;/div&gt;
+);
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->

@@ -10,7 +10,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],
     css: false,
-    pool: 'threads',
+    pool: 'forks',
+    fileParallelism: false,
     testTimeout: 30000,
     coverage: {
       provider: 'v8',

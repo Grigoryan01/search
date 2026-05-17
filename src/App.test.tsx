@@ -1,11 +1,14 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import * as api from './api';
 
 vi.mock('./api', () => ({
-  fetchFirstPageProducts: vi.fn(),
+  fetchProducts: vi.fn(),
+  fetchProductById: vi.fn(),
+  PAGE_SIZE: 10,
 }));
 
 const mockProducts = [
@@ -13,42 +16,55 @@ const mockProducts = [
   { id: 2, title: 'Samsung Galaxy', description: 'Android flagship' },
 ];
 
+const mockProductsResult = {
+  products: mockProducts,
+  total: mockProducts.length,
+};
+
+const renderApp = (initialEntry = '/?page=1') =>
+  render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <App />
+    </MemoryRouter>
+  );
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
-    vi.mocked(api.fetchFirstPageProducts).mockResolvedValue(mockProducts);
+    vi.mocked(api.fetchProducts).mockResolvedValue(mockProductsResult);
+    vi.mocked(api.fetchProductById).mockResolvedValue(mockProducts[0]);
   });
 
   it('renders the header with correct title', async () => {
-    render(<App />);
+    renderApp();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Product Search');
     await waitFor(() => {
-      expect(api.fetchFirstPageProducts).toHaveBeenCalled();
+      expect(api.fetchProducts).toHaveBeenCalled();
     });
   });
 
   it('renders search input and button', async () => {
-    render(<App />);
+    renderApp();
 
     expect(screen.getByRole('textbox', { name: /search products/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^search$/i })).toBeInTheDocument();
     await waitFor(() => {
-      expect(api.fetchFirstPageProducts).toHaveBeenCalled();
+      expect(api.fetchProducts).toHaveBeenCalled();
     });
   });
 
   it('makes initial API call on mount with empty search', async () => {
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
-      expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('');
+      expect(api.fetchProducts).toHaveBeenCalledWith('', 1);
     });
   });
 
   it('displays products after successful API call', async () => {
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByText('iPhone 15')).toBeInTheDocument();
@@ -57,20 +73,21 @@ describe('App', () => {
   });
 
   it('shows loading indicator while fetching data', async () => {
-    let resolvePromise: (value: typeof mockProducts) => void;
-    vi.mocked(api.fetchFirstPageProducts).mockImplementation(
-      () => new Promise((resolve) => {
-        resolvePromise = resolve;
-      })
+    let resolvePromise: (value: typeof mockProductsResult) => void;
+    vi.mocked(api.fetchProducts).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        })
     );
 
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByText('Loading items...')).toBeInTheDocument();
     });
 
-    resolvePromise!(mockProducts);
+    resolvePromise!(mockProductsResult);
 
     await waitFor(() => {
       expect(screen.queryByText('Loading items...')).not.toBeInTheDocument();
@@ -78,9 +95,9 @@ describe('App', () => {
   });
 
   it('shows error message when API call fails', async () => {
-    vi.mocked(api.fetchFirstPageProducts).mockRejectedValue(new Error('API Error'));
+    vi.mocked(api.fetchProducts).mockRejectedValue(new Error('API Error'));
 
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(
@@ -90,9 +107,9 @@ describe('App', () => {
   });
 
   it('displays empty state when no products are returned', async () => {
-    vi.mocked(api.fetchFirstPageProducts).mockResolvedValue([]);
+    vi.mocked(api.fetchProducts).mockResolvedValue({ products: [], total: 0 });
 
-    render(<App />);
+    renderApp();
 
     await waitFor(() => {
       expect(screen.getByText('No items found for this query.')).toBeInTheDocument();
@@ -102,7 +119,7 @@ describe('App', () => {
   describe('search functionality', () => {
     it('updates input value when user types', async () => {
       const user = userEvent.setup();
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(screen.getByText('iPhone 15')).toBeInTheDocument();
@@ -117,41 +134,41 @@ describe('App', () => {
 
     it('calls API with search term when search button is clicked', async () => {
       const user = userEvent.setup();
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
-        expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('');
+        expect(api.fetchProducts).toHaveBeenCalledWith('', 1);
       });
 
       const input = screen.getByRole('textbox', { name: /search products/i });
       await user.type(input, 'phone');
-      await user.click(screen.getByRole('button', { name: /search/i }));
+      await user.click(screen.getByRole('button', { name: /^search$/i }));
 
       await waitFor(() => {
-        expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('phone');
+        expect(api.fetchProducts).toHaveBeenCalledWith('phone', 1);
       });
     });
 
     it('trims whitespace from search input before searching', async () => {
       const user = userEvent.setup();
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
-        expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('');
+        expect(api.fetchProducts).toHaveBeenCalledWith('', 1);
       });
 
       const input = screen.getByRole('textbox', { name: /search products/i });
       await user.type(input, '  phone  ');
-      await user.click(screen.getByRole('button', { name: /search/i }));
+      await user.click(screen.getByRole('button', { name: /^search$/i }));
 
       await waitFor(() => {
-        expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('phone');
+        expect(api.fetchProducts).toHaveBeenCalledWith('phone', 1);
       });
     });
 
     it('does not re-fetch when submitting the same search term', async () => {
       const user = userEvent.setup();
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(screen.getByText('iPhone 15')).toBeInTheDocument();
@@ -159,17 +176,38 @@ describe('App', () => {
 
       const input = screen.getByRole('textbox', { name: /search products/i });
       await user.type(input, 'phone');
-      await user.click(screen.getByRole('button', { name: /search/i }));
+      await user.click(screen.getByRole('button', { name: /^search$/i }));
 
       await waitFor(() => {
-        expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('phone');
+        expect(api.fetchProducts).toHaveBeenCalledWith('phone', 1);
       });
 
-      const callCountAfterSearch = vi.mocked(api.fetchFirstPageProducts).mock.calls.length;
+      const callCountAfterSearch = vi.mocked(api.fetchProducts).mock.calls.length;
 
-      await user.click(screen.getByRole('button', { name: /search/i }));
+      await user.click(screen.getByRole('button', { name: /^search$/i }));
 
-      expect(vi.mocked(api.fetchFirstPageProducts).mock.calls.length).toBe(callCountAfterSearch);
+      expect(vi.mocked(api.fetchProducts).mock.calls.length).toBe(callCountAfterSearch);
+    });
+
+    it('resets page to 1 when the search input changes', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.fetchProducts).mockResolvedValue({
+        products: mockProducts,
+        total: 30,
+      });
+
+      renderApp('/?page=3');
+
+      await waitFor(() => {
+        expect(api.fetchProducts).toHaveBeenCalledWith('', 3);
+      });
+
+      const input = screen.getByRole('textbox', { name: /search products/i });
+      await user.type(input, 'a');
+
+      await waitFor(() => {
+        expect(api.fetchProducts).toHaveBeenCalledWith('', 1);
+      });
     });
   });
 
@@ -177,10 +215,10 @@ describe('App', () => {
     it('reads search term from localStorage on mount', async () => {
       localStorage.setItem('searchTerm', 'saved query');
 
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
-        expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('saved query');
+        expect(api.fetchProducts).toHaveBeenCalledWith('saved query', 1);
       });
 
       expect(screen.getByRole('textbox', { name: /search products/i })).toHaveValue(
@@ -190,7 +228,7 @@ describe('App', () => {
 
     it('saves search term to localStorage when search button is clicked', async () => {
       const user = userEvent.setup();
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(screen.getByText('iPhone 15')).toBeInTheDocument();
@@ -198,16 +236,16 @@ describe('App', () => {
 
       const input = screen.getByRole('textbox', { name: /search products/i });
       await user.type(input, 'laptop');
-      await user.click(screen.getByRole('button', { name: /search/i }));
+      await user.click(screen.getByRole('button', { name: /^search$/i }));
 
       expect(localStorage.getItem('searchTerm')).toBe('laptop');
     });
 
     it('handles empty localStorage value on mount', async () => {
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
-        expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('');
+        expect(api.fetchProducts).toHaveBeenCalledWith('', 1);
       });
 
       expect(screen.getByRole('textbox', { name: /search products/i })).toHaveValue('');
@@ -216,10 +254,10 @@ describe('App', () => {
     it('trims localStorage value on mount', async () => {
       localStorage.setItem('searchTerm', '  trimmed  ');
 
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
-        expect(api.fetchFirstPageProducts).toHaveBeenCalledWith('trimmed');
+        expect(api.fetchProducts).toHaveBeenCalledWith('trimmed', 1);
       });
     });
 
@@ -227,7 +265,7 @@ describe('App', () => {
       localStorage.setItem('searchTerm', 'old query');
       const user = userEvent.setup();
 
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(screen.getByText('iPhone 15')).toBeInTheDocument();
@@ -236,17 +274,140 @@ describe('App', () => {
       const input = screen.getByRole('textbox', { name: /search products/i });
       await user.clear(input);
       await user.type(input, 'new query');
-      await user.click(screen.getByRole('button', { name: /search/i }));
+      await user.click(screen.getByRole('button', { name: /^search$/i }));
 
       expect(localStorage.getItem('searchTerm')).toBe('new query');
     });
   });
 
+  describe('pagination', () => {
+    it('shows pagination after items are loaded', async () => {
+      vi.mocked(api.fetchProducts).mockResolvedValue({
+        products: mockProducts,
+        total: 30,
+      });
+
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByRole('navigation', { name: /pagination/i })).toBeInTheDocument();
+      });
+    });
+
+    it('does not show pagination while loading', async () => {
+      let resolvePromise: (value: { products: typeof mockProducts; total: number }) => void;
+      vi.mocked(api.fetchProducts).mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolvePromise = resolve;
+          })
+      );
+
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('Loading items...')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole('navigation', { name: /pagination/i })).not.toBeInTheDocument();
+
+      resolvePromise!({ products: mockProducts, total: 30 });
+
+      await waitFor(() => {
+        expect(screen.getByRole('navigation', { name: /pagination/i })).toBeInTheDocument();
+      });
+    });
+
+    it('loads the selected page when pagination is used', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.fetchProducts).mockResolvedValue({
+        products: mockProducts,
+        total: 30,
+      });
+
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Page 2' })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Page 2' }));
+
+      await waitFor(() => {
+        expect(api.fetchProducts).toHaveBeenCalledWith('', 2);
+      });
+
+      expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
+    });
+  });
+
+  describe('master-detail', () => {
+    it('opens details panel and loads item details', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /view details for iphone 15/i }));
+
+      expect(screen.getByRole('region', { name: /details section/i })).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(api.fetchProductById).toHaveBeenCalledWith(1);
+      });
+
+      expect(screen.getByLabelText(/item details/i)).toBeInTheDocument();
+    });
+
+    it('closes details when close button is clicked', async () => {
+      const user = userEvent.setup();
+      renderApp('/?page=1&details=1');
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /close details panel/i })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /close details panel/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByLabelText(/item details/i)).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('routing pages', () => {
+    it('navigates to About page', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('link', { name: /about/i }));
+
+      expect(screen.getByRole('heading', { level: 2, name: /about/i })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /rs school react course/i })).toHaveAttribute(
+        'href',
+        'https://rs.school/react/'
+      );
+    });
+
+    it('shows 404 page for unknown routes', async () => {
+      renderApp('/unknown-route');
+
+      expect(screen.getByText('The page you are looking for was not found.')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /back to home/i })).toBeInTheDocument();
+    });
+  });
+
   describe('error handling', () => {
     it('displays error message on API failure', async () => {
-      vi.mocked(api.fetchFirstPageProducts).mockRejectedValue(new Error('Network error'));
+      vi.mocked(api.fetchProducts).mockRejectedValue(new Error('Network error'));
 
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(
@@ -256,12 +417,12 @@ describe('App', () => {
     });
 
     it('clears products on API failure', async () => {
-      vi.mocked(api.fetchFirstPageProducts)
-        .mockResolvedValueOnce(mockProducts)
+      vi.mocked(api.fetchProducts)
+        .mockResolvedValueOnce(mockProductsResult)
         .mockRejectedValueOnce(new Error('API Error'));
 
       const user = userEvent.setup();
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(screen.getByText('iPhone 15')).toBeInTheDocument();
@@ -269,7 +430,7 @@ describe('App', () => {
 
       const input = screen.getByRole('textbox', { name: /search products/i });
       await user.type(input, 'fail');
-      await user.click(screen.getByRole('button', { name: /search/i }));
+      await user.click(screen.getByRole('button', { name: /^search$/i }));
 
       await waitFor(() => {
         expect(screen.queryByText('iPhone 15')).not.toBeInTheDocument();
@@ -277,12 +438,12 @@ describe('App', () => {
     });
 
     it('recovers from error when a subsequent search succeeds', async () => {
-      vi.mocked(api.fetchFirstPageProducts)
+      vi.mocked(api.fetchProducts)
         .mockRejectedValueOnce(new Error('API Error'))
-        .mockResolvedValueOnce(mockProducts);
+        .mockResolvedValueOnce(mockProductsResult);
 
       const user = userEvent.setup();
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(
@@ -292,7 +453,7 @@ describe('App', () => {
 
       const input = screen.getByRole('textbox', { name: /search products/i });
       await user.type(input, 'phone');
-      await user.click(screen.getByRole('button', { name: /search/i }));
+      await user.click(screen.getByRole('button', { name: /^search$/i }));
 
       await waitFor(() => {
         expect(screen.getByText('iPhone 15')).toBeInTheDocument();
@@ -312,9 +473,11 @@ describe('App', () => {
       const user = userEvent.setup();
 
       render(
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+        <MemoryRouter initialEntries={['/?page=1']}>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </MemoryRouter>
       );
 
       await waitFor(() => {
@@ -331,9 +494,11 @@ describe('App', () => {
       const user = userEvent.setup();
 
       render(
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
+        <MemoryRouter initialEntries={['/?page=1']}>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </MemoryRouter>
       );
 
       await waitFor(() => {

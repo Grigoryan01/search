@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for src/components/LoadingIndicator.tsx</title>
+    <title>Code coverage report for src/pages/NotFoundPage.tsx</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../../prettify.css" />
     <link rel="stylesheet" href="../../base.css" />
@@ -19,7 +19,7 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/components</a> LoadingIndicator.tsx</h1>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> NotFoundPage.tsx</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">100% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>1/1</span>
+                <span class='fraction'>0/0</span>
             </div>
         
             
@@ -80,12 +80,19 @@
 <a name='L15'></a><a href='#L15'>15</a>
 <a name='L16'></a><a href='#L16'>16</a>
 <a name='L17'></a><a href='#L17'>17</a>
-<a name='L18'></a><a href='#L18'>18</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">2x</span>
-<span class="cline-any cline-yes">49x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -97,22 +104,30 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">type LoadingIndicatorProps = {
-  message?: string;
-};
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Link } from 'react-router-dom';
+import { Main } from '../components/Main';
 &nbsp;
-export const LoadingIndicator = ({ message = 'Loading items...' }: LoadingIndicatorProps) =&gt; (
-  &lt;div
-    className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-base text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-    role="status"
-    aria-live="polite"
-  &gt;
-    &lt;span
-      className="h-5 w-5 animate-spin rounded-full border-[3px] border-blue-100 border-t-blue-600 dark:border-blue-900 dark:border-t-blue-400"
-      aria-hidden="true"
-    /&gt;
-    &lt;span&gt;{message}&lt;/span&gt;
-  &lt;/div&gt;
+export const NotFoundPage = () =&gt; (
+  &lt;Main&gt;
+    &lt;section
+      className="rounded-xl border border-slate-300 bg-white p-6 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      aria-label="Page not found"
+    &gt;
+      &lt;h2 className="mb-3 text-3xl font-semibold text-slate-900 dark:text-slate-100"&gt;404&lt;/h2&gt;
+      &lt;p className="mb-5 text-slate-700 dark:text-slate-300"&gt;
+        The page you are looking for was not found.
+      &lt;/p&gt;
+      &lt;Link
+        className="inline-block rounded-lg bg-blue-600 px-5 py-2 text-base font-medium text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-400"
+        to="/?page=1"
+      &gt;
+        Back to Home
+      &lt;/Link&gt;
+    &lt;/section&gt;
+  &lt;/Main&gt;
 );
 &nbsp;</pre></td></tr></table></pre>
 

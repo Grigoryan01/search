@@ -1,6 +1,6 @@
-import { fetchFirstPageProducts } from './api';
+import { fetchProductById, fetchProducts, PAGE_SIZE } from './api';
 
-describe('fetchFirstPageProducts', () => {
+describe('fetchProducts', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
@@ -13,7 +13,7 @@ describe('fetchFirstPageProducts', () => {
                 { id: 1, title: 'Product 1', description: 'Desc 1' },
                 { id: 2, title: 'Product 2', description: 'Desc 2' },
               ],
-              total: 2,
+              total: 42,
               skip: 0,
               limit: 10,
             }),
@@ -26,17 +26,18 @@ describe('fetchFirstPageProducts', () => {
     vi.unstubAllGlobals();
   });
 
-  it('returns products on successful response', async () => {
-    const products = await fetchFirstPageProducts('');
+  it('returns products and total on successful response', async () => {
+    const result = await fetchProducts('', 1);
 
-    expect(products).toEqual([
+    expect(result.products).toEqual([
       { id: 1, title: 'Product 1', description: 'Desc 1' },
       { id: 2, title: 'Product 2', description: 'Desc 2' },
     ]);
+    expect(result.total).toBe(42);
   });
 
   it('calls API with correct URL for empty search term', async () => {
-    await fetchFirstPageProducts('');
+    await fetchProducts('', 1);
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('https://dummyjson.com/products?')
@@ -46,12 +47,20 @@ describe('fetchFirstPageProducts', () => {
   });
 
   it('calls search endpoint with query parameter for non-empty search term', async () => {
-    await fetchFirstPageProducts('phone');
+    await fetchProducts('phone', 1);
 
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining('https://dummyjson.com/products/search?')
     );
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining('q=phone'));
+  });
+
+  it('uses skip based on page number', async () => {
+    await fetchProducts('', 3);
+
+    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+    const url = new URL(calledUrl);
+    expect(url.searchParams.get('skip')).toBe(String((3 - 1) * PAGE_SIZE));
   });
 
   it('throws error when response is not ok (4xx)', async () => {
@@ -65,7 +74,7 @@ describe('fetchFirstPageProducts', () => {
       )
     );
 
-    await expect(fetchFirstPageProducts('nonexistent')).rejects.toThrow(
+    await expect(fetchProducts('nonexistent', 1)).rejects.toThrow(
       'Request failed with status 404'
     );
   });
@@ -81,7 +90,7 @@ describe('fetchFirstPageProducts', () => {
       )
     );
 
-    await expect(fetchFirstPageProducts('')).rejects.toThrow('Request failed with status 500');
+    await expect(fetchProducts('', 1)).rejects.toThrow('Request failed with status 500');
   });
 
   it('throws error when fetch itself fails (network error)', async () => {
@@ -90,15 +99,59 @@ describe('fetchFirstPageProducts', () => {
       vi.fn(() => Promise.reject(new Error('Network error')))
     );
 
-    await expect(fetchFirstPageProducts('')).rejects.toThrow('Network error');
+    await expect(fetchProducts('', 1)).rejects.toThrow('Network error');
+  });
+});
+
+describe('fetchProductById', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: 7,
+              title: 'Detail Product',
+              description: 'Detail description',
+            }),
+        })
+      )
+    );
   });
 
-  it('includes pagination parameters in the request', async () => {
-    await fetchFirstPageProducts('test');
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
-    const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string;
-    const url = new URL(calledUrl);
-    expect(url.searchParams.get('limit')).toBe('10');
-    expect(url.searchParams.get('skip')).toBe('0');
+  it('returns a product by id', async () => {
+    const product = await fetchProductById(7);
+
+    expect(product).toEqual({
+      id: 7,
+      title: 'Detail Product',
+      description: 'Detail description',
+    });
+  });
+
+  it('calls the product detail endpoint', async () => {
+    await fetchProductById(7);
+
+    expect(fetch).toHaveBeenCalledWith('https://dummyjson.com/products/7');
+  });
+
+  it('throws when response is not ok', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 404,
+        })
+      )
+    );
+
+    await expect(fetchProductById(999)).rejects.toThrow('Request failed with status 404');
   });
 });

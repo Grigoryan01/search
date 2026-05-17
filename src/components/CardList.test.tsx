@@ -12,8 +12,8 @@ describe('CardList', () => {
   it('renders correct number of items when data is provided', () => {
     render(<CardList items={mockItems} />);
 
-    const articles = screen.getAllByRole('article');
-    expect(articles).toHaveLength(3);
+    const cards = screen.getAllByRole('button', { name: /view details for/i });
+    expect(cards).toHaveLength(3);
   });
 
   it('displays "no items" message when data array is empty', () => {
@@ -42,7 +42,7 @@ describe('CardList', () => {
   it('renders a single item correctly', () => {
     render(<CardList items={[mockItems[0]]} />);
 
-    expect(screen.getAllByRole('article')).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /view details for/i })).toHaveLength(1);
     expect(screen.getByText('Product One')).toBeInTheDocument();
   });
 });

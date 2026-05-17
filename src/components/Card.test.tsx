@@ -21,10 +21,12 @@ describe('Card', () => {
     expect(screen.getByText('A great product for testing purposes')).toBeInTheDocument();
   });
 
-  it('renders as an article element', () => {
+  it('renders as a selectable button element', () => {
     render(<Card item={mockProduct} />);
 
-    expect(screen.getByRole('article')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /view details for test product/i })
+    ).toBeInTheDocument();
   });
 
   it('handles long title and description', () => {

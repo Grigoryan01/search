@@ -96,11 +96,7 @@
 <a name='L31'></a><a href='#L31'>31</a>
 <a name='L32'></a><a href='#L32'>32</a>
 <a name='L33'></a><a href='#L33'>33</a>
-<a name='L34'></a><a href='#L34'>34</a>
-<a name='L35'></a><a href='#L35'>35</a>
-<a name='L36'></a><a href='#L36'>36</a>
-<a name='L37'></a><a href='#L37'>37</a>
-<a name='L38'></a><a href='#L38'>38</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L34'></a><a href='#L34'>34</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -108,15 +104,12 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">225x</span>
+<span class="cline-any cline-yes">51x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">50x</span>
-<span class="cline-any cline-yes">50x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">160x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">160x</span>
+<span class="cline-any cline-yes">225x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -136,8 +129,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Component, type ChangeEvent } from 'react';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { ChangeEvent } from 'react';
 &nbsp;
 type SearchProps = {
   value: string;
@@ -145,35 +137,31 @@ type SearchProps = {
   onSearch: () =&gt; void;
 };
 &nbsp;
-export class Search extends Component&lt;SearchProps&gt; {
-  handleInputChange = (event: ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
-    this.props.onValueChange(event.target.value);
+export const Search = ({ value, onValueChange, onSearch }: SearchProps) =&gt; {
+  const handleInputChange = (event: ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
+    onValueChange(event.target.value);
   };
 &nbsp;
-  render() {
-    const { value, onSearch } = this.props;
-&nbsp;
-    return (
-      &lt;div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]"&gt;
-        &lt;input
-          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:border-blue-400 dark:focus-visible:ring-blue-500/30"
-          type="text"
-          value={value}
-          onChange={this.handleInputChange}
-          placeholder="Search products"
-          aria-label="Search products"
-        /&gt;
-        &lt;button
-          className="cursor-pointer rounded-lg bg-blue-600 px-5 py-2 text-base font-medium text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-400 dark:focus-visible:ring-blue-500/50"
-          type="button"
-          onClick={onSearch}
-        &gt;
-          Search
-        &lt;/button&gt;
-      &lt;/div&gt;
-    );
-  }
-}
+  return (
+    &lt;div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]"&gt;
+      &lt;input
+        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 outline-none transition placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-2 focus-visible:ring-blue-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus-visible:border-blue-400 dark:focus-visible:ring-blue-500/30"
+        type="text"
+        value={value}
+        onChange={handleInputChange}
+        placeholder="Search products"
+        aria-label="Search products"
+      /&gt;
+      &lt;button
+        className="cursor-pointer rounded-lg bg-blue-600 px-5 py-2 text-base font-medium text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-400 dark:focus-visible:ring-blue-500/50"
+        type="button"
+        onClick={onSearch}
+      &gt;
+        Search
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+};
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -181,7 +169,7 @@ export class Search extends Component&lt;SearchProps&gt; {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-11T19:31:11.675Z
+                at 2026-05-17T17:32:50.214Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
