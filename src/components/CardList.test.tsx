@@ -12,8 +12,9 @@ describe('CardList', () => {
   it('renders correct number of items when data is provided', () => {
     render(<CardList items={mockItems} />);
 
-    const cards = screen.getAllByRole('button', { name: /view details for/i });
-    expect(cards).toHaveLength(3);
+    const detailButtons = screen.getAllByRole('button', { name: /view details for/i });
+    expect(detailButtons).toHaveLength(3);
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
   });
 
   it('displays "no items" message when data array is empty', () => {
@@ -44,5 +45,12 @@ describe('CardList', () => {
 
     expect(screen.getAllByRole('button', { name: /view details for/i })).toHaveLength(1);
     expect(screen.getByText('Product One')).toBeInTheDocument();
+  });
+
+  it('marks checked items based on checkedIds', () => {
+    render(<CardList items={mockItems} checkedIds={new Set([2])} />);
+
+    expect(screen.getByRole('checkbox', { name: /select product two/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /select product one/i })).not.toBeChecked();
   });
 });

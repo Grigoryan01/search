@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useSearchParams } from 'react-router-dom';
 import { fetchProducts, PAGE_SIZE } from '../api';
 import { CardList } from '../components/CardList';
@@ -8,6 +8,7 @@ import { Main } from '../components/Main';
 import { Pagination } from '../components/Pagination';
 import { Search } from '../components/Search';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useSelectedItemsStore } from '../store/selectedItemsStore';
 import type { Product } from '../types';
 
 const SEARCH_STORAGE_KEY = 'searchTerm';
@@ -19,6 +20,12 @@ const parsePage = (rawPage: string | null): number => {
 
 export const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const toggleSelectedItem = useSelectedItemsStore((state) => state.toggleItem);
+  const selectedItems = useSelectedItemsStore((state) => state.selectedItems);
+  const checkedIds = useMemo(
+    () => new Set(Object.keys(selectedItems).map(Number)),
+    [selectedItems]
+  );
   const { storedValue: persistedSearch, setValue: setPersistedSearch } =
     useLocalStorage(SEARCH_STORAGE_KEY);
 
@@ -58,26 +65,40 @@ export const HomePage = () => {
     }
   }, [searchParams, updateSearchParams]);
 
-  const loadProducts = useCallback(async (searchTerm: string, currentPage: number) => {
-    setIsLoading(true);
-    setErrorMessage('');
-
-    try {
-      const result = await fetchProducts(searchTerm, currentPage);
-      setItems(result.products);
-      setTotal(result.total);
-    } catch {
-      setItems([]);
-      setTotal(0);
-      setErrorMessage('Unable to load items. Please try again in a moment.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    void loadProducts(lastSubmittedSearch, page);
-  }, [lastSubmittedSearch, page, loadProducts]);
+    let cancelled = false;
+
+    const loadProducts = async () => {
+      setIsLoading(true);
+      setErrorMessage('');
+
+      try {
+        const result = await fetchProducts(lastSubmittedSearch, page);
+        if (cancelled) {
+          return;
+        }
+        setItems(result.products);
+        setTotal(result.total);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+        setItems([]);
+        setTotal(0);
+        setErrorMessage('Unable to load items. Please try again in a moment.');
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lastSubmittedSearch, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -119,10 +140,14 @@ export const HomePage = () => {
     });
   };
 
-  const handleSelectItem = (id: number) => {
+  const handleOpenDetails = (id: number) => {
     updateSearchParams((params) => {
       params.set('details', String(id));
     });
+  };
+
+  const handleToggleCheck = (item: Product) => {
+    toggleSelectedItem(item);
   };
 
   const handleCloseDetails = () => {
@@ -155,8 +180,10 @@ export const HomePage = () => {
       <>
         <CardList
           items={items}
-          selectedId={Number.isNaN(selectedId ?? NaN) ? null : selectedId}
-          onSelectItem={handleSelectItem}
+          checkedIds={checkedIds}
+          detailsId={Number.isNaN(selectedId ?? NaN) ? null : selectedId}
+          onToggleCheck={handleToggleCheck}
+          onOpenDetails={handleOpenDetails}
         />
         {showPagination && (
           <Pagination

@@ -3,7 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ThemeProvider } from './context/ThemeProvider';
 import * as api from './api';
+import { useSelectedItemsStore } from './store/selectedItemsStore';
+import * as downloadCsv from './utils/downloadCsv';
+
+vi.mock('./utils/downloadCsv', () => ({
+  downloadSelectedItemsAsCsv: vi.fn(),
+}));
 
 vi.mock('./api', () => ({
   fetchProducts: vi.fn(),
@@ -23,14 +30,19 @@ const mockProductsResult = {
 
 const renderApp = (initialEntry = '/?page=1') =>
   render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <App />
-    </MemoryRouter>
+    <ThemeProvider>
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <App />
+      </MemoryRouter>
+    </ThemeProvider>
   );
 
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear();
+    useSelectedItemsStore.setState({ selectedItems: {} });
+    document.documentElement.classList.remove('dark');
+    document.documentElement.removeAttribute('data-theme');
     vi.clearAllMocks();
     vi.mocked(api.fetchProducts).mockResolvedValue(mockProductsResult);
     vi.mocked(api.fetchProductById).mockResolvedValue(mockProducts[0]);
@@ -341,6 +353,115 @@ describe('App', () => {
     });
   });
 
+  describe('selected items and flyout', () => {
+    it('stores checkbox selections in application state', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('checkbox', { name: /select iphone 15/i }));
+
+      expect(useSelectedItemsStore.getState().isSelected(1)).toBe(true);
+      expect(screen.getByText('1 item selected')).toBeInTheDocument();
+    });
+
+    it('removes an item from state when unchecked', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      const checkbox = screen.getByRole('checkbox', { name: /select iphone 15/i });
+      await user.click(checkbox);
+      await user.click(checkbox);
+
+      expect(useSelectedItemsStore.getState().isSelected(1)).toBe(false);
+      expect(screen.queryByText(/item selected/i)).not.toBeInTheDocument();
+    });
+
+    it('keeps selections when navigating to About and back', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('checkbox', { name: /select iphone 15/i }));
+      await user.click(screen.getByRole('link', { name: /about/i }));
+      await user.click(screen.getByRole('link', { name: /home/i }));
+
+      expect(useSelectedItemsStore.getState().isSelected(1)).toBe(true);
+      expect(screen.getByText('1 item selected')).toBeInTheDocument();
+    });
+
+    it('clears all selections from the flyout', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('checkbox', { name: /select iphone 15/i }));
+      await user.click(screen.getByRole('checkbox', { name: /select samsung galaxy/i }));
+      await user.click(screen.getByRole('button', { name: /unselect all/i }));
+
+      expect(useSelectedItemsStore.getState().selectedItems).toEqual({});
+    });
+
+    it('downloads selected items as CSV from the flyout', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('checkbox', { name: /select iphone 15/i }));
+      await user.click(screen.getByRole('button', { name: /^download$/i }));
+
+      expect(downloadCsv.downloadSelectedItemsAsCsv).toHaveBeenCalledWith([mockProducts[0]]);
+    });
+
+    it('does not open details when only the checkbox is clicked', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('checkbox', { name: /select iphone 15/i }));
+
+      expect(screen.queryByLabelText(/item details/i)).not.toBeInTheDocument();
+      expect(api.fetchProductById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('theme switching', () => {
+    it('renders theme controls at the top of the app', () => {
+      renderApp();
+
+      expect(screen.getByRole('group', { name: /theme selection/i })).toBeInTheDocument();
+    });
+
+    it('applies dark theme to the document when selected', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await user.click(screen.getByRole('radio', { name: /dark/i }));
+
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    });
+  });
+
   describe('master-detail', () => {
     it('opens details panel and loads item details', async () => {
       const user = userEvent.setup();
@@ -359,6 +480,19 @@ describe('App', () => {
       });
 
       expect(screen.getByLabelText(/item details/i)).toBeInTheDocument();
+    });
+
+    it('does not change checkbox selection when opening details', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /view details for iphone 15/i }));
+
+      expect(useSelectedItemsStore.getState().isSelected(1)).toBe(false);
     });
 
     it('closes details when close button is clicked', async () => {
@@ -473,11 +607,13 @@ describe('App', () => {
       const user = userEvent.setup();
 
       render(
-        <MemoryRouter initialEntries={['/?page=1']}>
-          <ErrorBoundary>
-            <App />
-          </ErrorBoundary>
-        </MemoryRouter>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/?page=1']}>
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
+          </MemoryRouter>
+        </ThemeProvider>
       );
 
       await waitFor(() => {
@@ -494,11 +630,13 @@ describe('App', () => {
       const user = userEvent.setup();
 
       render(
-        <MemoryRouter initialEntries={['/?page=1']}>
-          <ErrorBoundary>
-            <App />
-          </ErrorBoundary>
-        </MemoryRouter>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={['/?page=1']}>
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
+          </MemoryRouter>
+        </ThemeProvider>
       );
 
       await waitFor(() => {

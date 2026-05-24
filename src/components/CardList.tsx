@@ -3,11 +3,19 @@ import { Card } from './Card';
 
 type CardListProps = {
   items: Product[];
-  selectedId?: number | null;
-  onSelectItem?: (id: number) => void;
+  checkedIds?: Set<number>;
+  detailsId?: number | null;
+  onToggleCheck?: (item: Product) => void;
+  onOpenDetails?: (id: number) => void;
 };
 
-export const CardList = ({ items, selectedId = null, onSelectItem }: CardListProps) => {
+export const CardList = ({
+  items,
+  checkedIds = new Set(),
+  detailsId = null,
+  onToggleCheck,
+  onOpenDetails,
+}: CardListProps) => {
   if (!items.length) {
     return (
       <p className="m-0 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
@@ -22,8 +30,10 @@ export const CardList = ({ items, selectedId = null, onSelectItem }: CardListPro
         <Card
           key={item.id}
           item={item}
-          isSelected={selectedId === item.id}
-          onSelect={onSelectItem}
+          isChecked={checkedIds.has(item.id)}
+          isDetailsActive={detailsId === item.id}
+          onToggleCheck={onToggleCheck}
+          onOpenDetails={onOpenDetails}
         />
       ))}
     </div>

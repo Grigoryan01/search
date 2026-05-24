@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Card } from './Card';
 import type { Product } from '../types';
 
@@ -21,12 +22,55 @@ describe('Card', () => {
     expect(screen.getByText('A great product for testing purposes')).toBeInTheDocument();
   });
 
-  it('renders as a selectable button element', () => {
+  it('renders a checkbox for selection', () => {
+    render(<Card item={mockProduct} />);
+
+    expect(screen.getByRole('checkbox', { name: /select test product/i })).toBeInTheDocument();
+  });
+
+  it('renders a button to open details', () => {
     render(<Card item={mockProduct} />);
 
     expect(
       screen.getByRole('button', { name: /view details for test product/i })
     ).toBeInTheDocument();
+  });
+
+  it('calls onToggleCheck when checkbox is clicked', async () => {
+    const user = userEvent.setup();
+    const onToggleCheck = vi.fn();
+
+    render(<Card item={mockProduct} onToggleCheck={onToggleCheck} />);
+
+    await user.click(screen.getByRole('checkbox', { name: /select test product/i }));
+
+    expect(onToggleCheck).toHaveBeenCalledWith(mockProduct);
+  });
+
+  it('calls onOpenDetails when card content is clicked', async () => {
+    const user = userEvent.setup();
+    const onOpenDetails = vi.fn();
+
+    render(<Card item={mockProduct} onOpenDetails={onOpenDetails} />);
+
+    await user.click(screen.getByRole('button', { name: /view details for test product/i }));
+
+    expect(onOpenDetails).toHaveBeenCalledWith(1);
+  });
+
+  it('does not call onOpenDetails when checkbox is clicked', async () => {
+    const user = userEvent.setup();
+    const onOpenDetails = vi.fn();
+    const onToggleCheck = vi.fn();
+
+    render(
+      <Card item={mockProduct} onOpenDetails={onOpenDetails} onToggleCheck={onToggleCheck} />
+    );
+
+    await user.click(screen.getByRole('checkbox', { name: /select test product/i }));
+
+    expect(onToggleCheck).toHaveBeenCalled();
+    expect(onOpenDetails).not.toHaveBeenCalled();
   });
 
   it('handles long title and description', () => {

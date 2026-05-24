@@ -9,28 +9,25 @@ type DetailsOutletContext = {
   onClose: () => void;
 };
 
-export const DetailsPanel = () => {
-  const [searchParams] = useSearchParams();
+type DetailsPanelContentProps = {
+  detailsId: string;
+};
+
+const DetailsPanelContent = ({ detailsId }: DetailsPanelContentProps) => {
   const { onClose } = useOutletContext<DetailsOutletContext>();
-  const detailsId = searchParams.get('details');
+  const numericId = Number(detailsId);
+  const isInvalidId = Number.isNaN(numericId);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
-    if (!detailsId) {
-      setProduct(null);
-      setErrorMessage('');
+    if (isInvalidId) {
       return;
     }
 
-    const id = Number(detailsId);
-    if (Number.isNaN(id)) {
-      setProduct(null);
-      setErrorMessage('Invalid item selected.');
-      return;
-    }
+    let cancelled = false;
 
     const loadDetails = async () => {
       setIsLoading(true);
@@ -38,21 +35,27 @@ export const DetailsPanel = () => {
       setProduct(null);
 
       try {
-        const item = await fetchProductById(id);
-        setProduct(item);
+        const item = await fetchProductById(numericId);
+        if (!cancelled) {
+          setProduct(item);
+        }
       } catch {
-        setErrorMessage('Unable to load item details. Please try again.');
+        if (!cancelled) {
+          setErrorMessage('Unable to load item details. Please try again.');
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     void loadDetails();
-  }, [detailsId]);
 
-  if (!detailsId) {
-    return null;
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, [detailsId, isInvalidId, numericId]);
 
   return (
     <aside
@@ -73,11 +76,13 @@ export const DetailsPanel = () => {
         </button>
       </div>
 
-      {isLoading && <LoadingIndicator message="Loading details..." />}
+      {isInvalidId && <ErrorMessage message="Invalid item selected." />}
 
-      {!isLoading && errorMessage && <ErrorMessage message={errorMessage} />}
+      {!isInvalidId && isLoading && <LoadingIndicator message="Loading details..." />}
 
-      {!isLoading && !errorMessage && product && (
+      {!isInvalidId && !isLoading && errorMessage && <ErrorMessage message={errorMessage} />}
+
+      {!isInvalidId && !isLoading && !errorMessage && product && (
         <article>
           <h3 className="mb-2 text-lg font-semibold text-slate-900 dark:text-slate-100">
             {product.title}
@@ -90,4 +95,15 @@ export const DetailsPanel = () => {
       )}
     </aside>
   );
+};
+
+export const DetailsPanel = () => {
+  const [searchParams] = useSearchParams();
+  const detailsId = searchParams.get('details');
+
+  if (!detailsId) {
+    return null;
+  }
+
+  return <DetailsPanelContent key={detailsId} detailsId={detailsId} />;
 };
