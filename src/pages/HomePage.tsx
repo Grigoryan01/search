@@ -1,17 +1,22 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet, useSearchParams } from 'react-router-dom';
-import { fetchProducts, PAGE_SIZE } from '../api';
+import { PAGE_SIZE } from '../api';
 import { CardList } from '../components/CardList';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { LoadingIndicator } from '../components/LoadingIndicator';
 import { Main } from '../components/Main';
 import { Pagination } from '../components/Pagination';
+import { RefreshButton } from '../components/RefreshButton';
 import { Search } from '../components/Search';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useProductsQuery } from '../hooks/useProductsQuery';
+import { productKeys } from '../lib/queryKeys';
 import { useSelectedItemsStore } from '../store/selectedItemsStore';
 import type { Product } from '../types';
 
 const SEARCH_STORAGE_KEY = 'searchTerm';
+const LIST_ERROR_MESSAGE = 'Unable to load items. Please try again in a moment.';
 
 const parsePage = (rawPage: string | null): number => {
   const parsed = Number(rawPage ?? '1');
@@ -19,6 +24,7 @@ const parsePage = (rawPage: string | null): number => {
 };
 
 export const HomePage = () => {
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const toggleSelectedItem = useSelectedItemsStore((state) => state.toggleItem);
   const selectedItems = useSelectedItemsStore((state) => state.selectedItems);
@@ -35,10 +41,19 @@ export const HomePage = () => {
 
   const [inputValue, setInputValue] = useState(persistedSearch);
   const [lastSubmittedSearch, setLastSubmittedSearch] = useState(persistedSearch);
-  const [items, setItems] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+
+  const {
+    data,
+    isPending,
+    isError,
+    isFetching,
+    isRefetching,
+  } = useProductsQuery(lastSubmittedSearch, page);
+
+  const items = data?.products ?? [];
+  const total = data?.total ?? 0;
+  const isLoading = isPending || (isRefetching && items.length === 0);
+  const errorMessage = isError ? LIST_ERROR_MESSAGE : '';
 
   const updateSearchParams = useCallback(
     (updater: (params: URLSearchParams) => void, options?: { replace?: boolean }) => {
@@ -64,41 +79,6 @@ export const HomePage = () => {
       }, { replace: true });
     }
   }, [searchParams, updateSearchParams]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadProducts = async () => {
-      setIsLoading(true);
-      setErrorMessage('');
-
-      try {
-        const result = await fetchProducts(lastSubmittedSearch, page);
-        if (cancelled) {
-          return;
-        }
-        setItems(result.products);
-        setTotal(result.total);
-      } catch {
-        if (cancelled) {
-          return;
-        }
-        setItems([]);
-        setTotal(0);
-        setErrorMessage('Unable to load items. Please try again in a moment.');
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadProducts();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [lastSubmittedSearch, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -162,6 +142,12 @@ export const HomePage = () => {
     }
   };
 
+  const handleRefreshList = () => {
+    void queryClient.invalidateQueries({
+      queryKey: productKeys.list(lastSubmittedSearch, page),
+    });
+  };
+
   const showPagination = !isLoading && !errorMessage && items.length > 0;
   const hasDetailsOpen = Boolean(detailsParam);
 
@@ -202,7 +188,16 @@ export const HomePage = () => {
         className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
         aria-label="Search section"
       >
-        <Search value={inputValue} onValueChange={handleInputChange} onSearch={handleSearch} />
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[220px] flex-1">
+            <Search value={inputValue} onValueChange={handleInputChange} onSearch={handleSearch} />
+          </div>
+          <RefreshButton
+            onRefresh={handleRefreshList}
+            isRefreshing={isFetching && !isPending}
+            label="Refresh list"
+          />
+        </div>
       </section>
 
       <section

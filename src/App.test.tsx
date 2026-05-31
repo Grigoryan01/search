@@ -1,3 +1,4 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -5,6 +6,7 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './context/ThemeProvider';
 import * as api from './api';
+import { createTestQueryClient } from './lib/queryClient';
 import { useSelectedItemsStore } from './store/selectedItemsStore';
 import * as downloadCsv from './utils/downloadCsv';
 
@@ -28,14 +30,22 @@ const mockProductsResult = {
   total: mockProducts.length,
 };
 
-const renderApp = (initialEntry = '/?page=1') =>
-  render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <App />
-      </MemoryRouter>
-    </ThemeProvider>
-  );
+const renderApp = (initialEntry = '/?page=1') => {
+  const queryClient = createTestQueryClient();
+
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <MemoryRouter initialEntries={[initialEntry]}>
+            <App />
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
+    ),
+  };
+};
 
 describe('App', () => {
   beforeEach(() => {
@@ -351,6 +361,55 @@ describe('App', () => {
 
       expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page');
     });
+
+    it('reuses cached data when returning to a previously visited page', async () => {
+      const user = userEvent.setup();
+      vi.mocked(api.fetchProducts).mockResolvedValue({
+        products: mockProducts,
+        total: 30,
+      });
+
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Page 2' })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Page 2' }));
+
+      await waitFor(() => {
+        expect(api.fetchProducts).toHaveBeenCalledWith('', 2);
+      });
+
+      const callsAfterPageTwo = vi.mocked(api.fetchProducts).mock.calls.length;
+
+      await user.click(screen.getByRole('button', { name: 'Page 1' }));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Page 1' })).toHaveAttribute('aria-current', 'page');
+      });
+
+      expect(vi.mocked(api.fetchProducts).mock.calls.length).toBe(callsAfterPageTwo);
+    });
+
+    it('refetches the current page when refresh list is clicked', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      const initialCalls = vi.mocked(api.fetchProducts).mock.calls.length;
+
+      await user.click(screen.getByRole('button', { name: /refresh list/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(api.fetchProducts).mock.calls.length).toBeGreaterThan(initialCalls);
+      });
+
+      expect(api.fetchProducts).toHaveBeenCalledWith('', 1);
+    });
   });
 
   describe('selected items and flyout', () => {
@@ -509,6 +568,66 @@ describe('App', () => {
         expect(screen.queryByLabelText(/item details/i)).not.toBeInTheDocument();
       });
     });
+
+    it('caches item details and avoids refetch when reopening the same item', async () => {
+      const user = userEvent.setup();
+      renderApp();
+
+      await waitFor(() => {
+        expect(screen.getByText('iPhone 15')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /view details for iphone 15/i }));
+
+      await waitFor(() => {
+        expect(api.fetchProductById).toHaveBeenCalledWith(1);
+      });
+
+      const detailCallsAfterOpen = vi.mocked(api.fetchProductById).mock.calls.length;
+
+      await user.click(screen.getByRole('button', { name: /close details panel/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByLabelText(/item details/i)).not.toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /view details for iphone 15/i }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/item details/i)).toBeInTheDocument();
+      });
+
+      expect(vi.mocked(api.fetchProductById).mock.calls.length).toBe(detailCallsAfterOpen);
+    });
+
+    it('refetches details when refresh details is clicked', async () => {
+      const user = userEvent.setup();
+      renderApp('/?page=1&details=1');
+
+      await waitFor(() => {
+        expect(api.fetchProductById).toHaveBeenCalledWith(1);
+      });
+
+      const initialCalls = vi.mocked(api.fetchProductById).mock.calls.length;
+
+      await user.click(screen.getByRole('button', { name: /refresh details/i }));
+
+      await waitFor(() => {
+        expect(vi.mocked(api.fetchProductById).mock.calls.length).toBeGreaterThan(initialCalls);
+      });
+    });
+
+    it('shows error message when details API call fails', async () => {
+      vi.mocked(api.fetchProductById).mockRejectedValue(new Error('Details failed'));
+
+      renderApp('/?page=1&details=1');
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Unable to load item details. Please try again.')
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('routing pages', () => {
@@ -607,13 +726,15 @@ describe('App', () => {
       const user = userEvent.setup();
 
       render(
-        <ThemeProvider>
-          <MemoryRouter initialEntries={['/?page=1']}>
-            <ErrorBoundary>
-              <App />
-            </ErrorBoundary>
-          </MemoryRouter>
-        </ThemeProvider>
+        <QueryClientProvider client={createTestQueryClient()}>
+          <ThemeProvider>
+            <MemoryRouter initialEntries={['/?page=1']}>
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
+            </MemoryRouter>
+          </ThemeProvider>
+        </QueryClientProvider>
       );
 
       await waitFor(() => {
@@ -630,13 +751,15 @@ describe('App', () => {
       const user = userEvent.setup();
 
       render(
-        <ThemeProvider>
-          <MemoryRouter initialEntries={['/?page=1']}>
-            <ErrorBoundary>
-              <App />
-            </ErrorBoundary>
-          </MemoryRouter>
-        </ThemeProvider>
+        <QueryClientProvider client={createTestQueryClient()}>
+          <ThemeProvider>
+            <MemoryRouter initialEntries={['/?page=1']}>
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
+            </MemoryRouter>
+          </ThemeProvider>
+        </QueryClientProvider>
       );
 
       await waitFor(() => {
