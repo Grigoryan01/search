@@ -14,6 +14,18 @@ React + TypeScript application demonstrating accessible modals (React Portals), 
 
 Implementation lives on the `forms` branch. Open a pull request from `forms` to `main` when ready for review.
 
+## Pull Request checklist (Score)
+
+- [ ] Modal uses React Portal with focus trap, Escape, and click-outside close
+- [ ] Zustand stores submission history and countries list
+- [ ] Uncontrolled form validates on submit only (Zod)
+- [ ] React Hook Form validates live and disables submit when invalid
+- [ ] Shared Zod schema for both forms
+- [ ] Image upload validated (PNG/JPEG, size) and stored as base64
+- [ ] Password strength indicator and country autocomplete
+- [ ] Submission cards with temporary highlight for new entries
+- [ ] Tests cover forms, modal, store, and utilities
+
 ## Features
 
 - Reusable accessible modal (portal, focus trap, Escape, click outside)

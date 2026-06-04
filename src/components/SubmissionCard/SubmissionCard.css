@@ -1,0 +1,66 @@
+.submission-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  background: #fff;
+  transition:
+    border-color 0.3s ease,
+    background-color 0.3s ease;
+}
+
+.submission-card--new {
+  border-color: #2e90fa;
+  background: #eff8ff;
+}
+
+.submission-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.submission-card__header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.submission-card__badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #f2f4f7;
+  font-size: 0.75rem;
+}
+
+.submission-card__image {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.submission-card__details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+  margin: 0;
+}
+
+.submission-card__details div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.submission-card__details dt {
+  font-size: 0.75rem;
+  color: #667085;
+}
+
+.submission-card__details dd {
+  margin: 0;
+  font-weight: 600;
+}
